@@ -1,0 +1,26 @@
+{
+  "name": "tennu-dynamic-alias",
+  "version": "1.0.0",
+  "description": "Tennu plugin for creating dynamic aliases to other commands.",
+  "main": "plugin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Havvy/tennu-dynamic-alias.git"
+  },
+  "keywords": [
+    "tennu-plugin"
+  ],
+  "author": "Ryan Scheel (Havvy)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Havvy/tennu-dynamic-alias/issues"
+  },
+  "homepage": "https://github.com/Havvy/tennu-dynamic-alias#readme",
+  "dependencies": {
+    "dirty": "^1.1.0",
+    "r-result": "^1.5.1"
+  }
+}
