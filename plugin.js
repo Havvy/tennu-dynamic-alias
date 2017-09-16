@@ -75,7 +75,11 @@ const DynamicAliases = {
                 })
             },
 
-            commands: ["dynamic-alias"]
+            commands: ["dynamic-alias"],
+
+            help: {
+                "dynamic-alias": "See https://tennu.github.com/plugins/dynamic-alias."
+            }
         };
     }
 };
