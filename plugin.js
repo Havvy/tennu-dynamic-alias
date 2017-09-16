@@ -1,4 +1,44 @@
 const Db = require("./db");
+const {Ok, Fail} = require("r-result");
+
+/// replace_$ns(replacing: String, replacements: [String]) -> String
+///
+/// Replaces $ns (e.g. $0, $1, $1+) with the respective strings in replacements.
+const replace_$ns = function replace_$ns (replacing, replacements) {
+    const replaceMatch = replacing.match(/^(.*?)\$(\d+)(\+?)(.*)$/);
+    if (replaceMatch === null) {
+        return Ok(replacing);
+    }
+
+    const prefix = replaceMatch[1];
+    const replaceIx = Number(replaceMatch[2]);
+    const hasRestArg = replaceMatch[3] === "+";
+    let suffix = replaceMatch[4];
+
+    if (!(replaceIx in replacements)) {
+        return Fail("undefined-replacement");
+    }
+
+    let replaced;
+    if (hasRestArg) {
+        replaced = replacements.slice(replaceIx).join(" ");
+    } else {
+        replaced = replacements[replaceIx];
+    }
+
+    // The prefix does not need the recursive replacement
+    // because it non-greedily consumes characters.
+
+    suffix = replace_$ns(suffix, replacements);
+
+    if (suffix.isFail()) {
+        return suffix;
+    } else {
+        suffix = suffix.ok();
+    }
+
+    return Ok([prefix, replaced, suffix].join(""));
+};
 
 const DynamicAliases = {
     name: "dynamic-alias",
@@ -12,38 +52,33 @@ const DynamicAliases = {
             commandMiddleware: function (command) {
                 const aliasingInfo = db.get(command.command);
 
-                // Note(Havvy): Sorry for anybody who reads this procedural mess.
                 if (aliasingInfo) {
                     command.command = aliasingInfo.command;
 
-                    let undefinedArgs = false;
-                    const newArgs = aliasingInfo.args.map(function (arg) {
-                        const argMatch = arg.match(/^\$(\d+)(\+?)$/);
-                        if (argMatch === null) {
-                            return [arg];
+                    setCommandArgs: {
+                        let undefinedArgs = false;
+                        const newArgsUnflattened = aliasingInfo.args.map(function (arg) {
+                            return replace_$ns(arg, command.args).match({
+                                Ok(arg) {
+                                    return arg.split(" ");
+                                },
+
+                                Err(_) {
+                                    undefinedArgs = true;
+                                }
+                            });
+                        });
+
+                        if (undefinedArgs) {
+                            return "Incorrect number of arguments given.";
                         }
 
-                        const argIx = Number(argMatch[1]);
-                        const restArg = argMatch[2] === "+";
+                        const newArgs = Array.prototype.concat.apply([], newArgsUnflattened)
 
-                        if (argIx in command.args) {
-                            const inputArg = command.args[argIx];
-
-                            if (restArg) {
-                                return command.args.slice(argIx);
-                            } else {
-                                return [command.args[argIx]];
-                            }
-                        } else {
-                            undefinedArgs = true;
-                        }
-                    });
-
-                    if (undefinedArgs) {
-                        return "Incorrect number of arguments given.";
+                        command.args = newArgs;
                     }
 
-                    command.args = Array.prototype.concat.apply([], newArgs);
+                    command[admin.allowAll] = aliasingInfo.allowAll;
                 }
 
                 return command;
@@ -54,7 +89,7 @@ const DynamicAliases = {
                     switch (subcommand) {
                         case "set":
                             let [command, ...commandArgs] = args;
-                            db.set({alias, command: command, args: commandArgs});
+                            db.set({alias, command, args: commandArgs, allowAll: false});
                             return "Done.";
                         case "remove":
                             return db.delete(alias).match({
@@ -69,6 +104,12 @@ const DynamicAliases = {
                             }
 
                             return `${alias} -> ${aliasingInfo.command} ${aliasingInfo.args.join(" ")}`;
+                        case "allow":
+                            db.allow(alias);
+                            return "Done.";
+                        case "unallow":
+                            db.unallow(alias);
+                            return "Done.";
                         default:
                             return "Unknown subcommand. Known commands are 'set', 'remove' and 'view'";
                     }

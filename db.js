@@ -10,14 +10,34 @@ const Db = function (databaseLocation) {
         },
 
         set ({alias, command, args}) {
-            db.set(alias, {command, args});
+            db.set(alias, {command, args, allowAll: false});
+        },
+
+        allow(alias) {
+            db.update(alias, function (aliasingInfo) {
+                if (aliasingInfo) {
+                    aliasingInfo.allowAll = true;
+                }
+
+                return aliasingInfo;
+            });
+        },
+
+        unallow(alias) {
+            db.update(alias, function (aliasingInfo) {
+                if (aliasingInfo) {
+                    aliasingInfo.allowAll = false;
+                }
+
+                return aliasingInfo;
+            });
         },
 
         delete (alias) {
             let ret;
 
-            db.update(alias, function (value) {
-                ret = value ? Ok() : Fail();
+            db.update(alias, function (aliasingInfo) {
+                ret = aliasingInfo ? Ok() : Fail();
                 return undefined;
             });
 
