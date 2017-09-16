@@ -1,6 +1,6 @@
 {
   "name": "tennu-dynamic-alias",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tennu plugin for creating dynamic aliases to other commands.",
   "main": "plugin.js",
   "scripts": {
