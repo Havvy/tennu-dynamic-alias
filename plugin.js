@@ -18,25 +18,32 @@ const DynamicAliases = {
 
                     let undefinedArgs = false;
                     const newArgs = aliasingInfo.args.map(function (arg) {
-                        const argMatch = arg.match(/^\$(\d+)$/);
-                        if (argMatch !== null) {
-                            const argIx = Number(argMatch[1]);
-                            const inputArg = command.args[argIx];
-                            if (inputArg) {
-                                return inputArg;
-                            } else {
-                                undefinedArgs = true;
-                            }
+                        const argMatch = arg.match(/^\$(\d+)(\+?)$/);
+                        if (argMatch === null) {
+                            return [arg];
                         }
 
-                        return arg;
+                        const argIx = Number(argMatch[1]);
+                        const restArg = argMatch[2] === "+";
+
+                        if (argIx in command.args) {
+                            const inputArg = command.args[argIx];
+
+                            if (restArg) {
+                                return command.args.slice(argIx);
+                            } else {
+                                return [command.args[argIx]];
+                            }
+                        } else {
+                            undefinedArgs = true;
+                        }
                     });
 
                     if (undefinedArgs) {
                         return "Incorrect number of arguments given.";
                     }
 
-                    command.args = newArgs;
+                    command.args = Array.prototype.concat.apply([], newArgs);
                 }
 
                 return command;
